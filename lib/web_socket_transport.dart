@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
@@ -35,20 +36,23 @@ class WebSocketTransport implements ITransport {
     assert(url != null);
 
     _logger?.finest("(WebSockets transport) Connecting");
-
+    final token = await _accessTokenFactory!();
     if (_accessTokenFactory != null) {
-      final token = await _accessTokenFactory!();
       if (!isStringEmpty(token)) {
         final encodedToken = Uri.encodeComponent(token);
-        url = url! +
-            (url.indexOf("?") < 0 ? "?" : "&") +
-            "access_token=$encodedToken";
+        // url = url! +
+        //     (url.indexOf("?") < 0 ? "?" : "&") +
+        //     "access_token=$encodedToken";
+        // url = url! +
+        //     (url.indexOf("?") < 0 ? "?" : "&") +
+        //     "access_token=$encodedToken";
       }
     }
 
     var websocketCompleter = Completer();
     var opened = false;
     url = url!.replaceFirst('http', 'ws');
+
     _logger?.finest("WebSocket try connecting to '$url'.");
     _webSocket = WebSocketChannel.connect(Uri.parse(url));
     opened = true;
@@ -98,6 +102,28 @@ class WebSocketTransport implements ITransport {
         }
       },
     );
+
+    try {
+      final headers = {'Authorization': 'Bearer $token'};
+
+      // Connect to the WebSocket server with the headers
+      _logger?.finest("url >>>>>>>> :$url");
+      final socket = await WebSocket.connect(url, headers: headers);
+
+      // Send a message to the server over the WebSocket
+      // final message = {'type': 'message', 'content': 'Hello from Flutter!'};
+      // socket.add(json.encode(message));
+
+      // // Listen for incoming messages on the WebSocket
+      // await for (final message in socket) {
+      //   print('Received message: $message');
+      // }
+
+      // // Close the WebSocket connection
+      // await socket.close();
+    } catch (e) {
+      _logger?.finest("exception >>>>>>>> :$e");
+    }
 
     return websocketCompleter.future;
   }
